@@ -21,6 +21,8 @@ st.markdown('''Welcome to ScoreSegment!
             This app takes in computer-generated sheet music and segments it into staves.
             This can be useful for creating musical score videos.''')
 
+debug = st.toggle('Show segmenting process', key='debug')
+
 uploaded_file = st.file_uploader('Choose a PDF file', type='pdf')
 
 if uploaded_file is not None:

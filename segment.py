@@ -1,25 +1,31 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+import streamlit as st
 
 
-def plot_vlines(im, lines, color='green'):
-    H = im.shape[0]
-    for i in range(len(lines)):
-        x = [lines[i], lines[i]]
-        y = [0, H-1]
-        plt.plot(x, y, color=color, linewidth=0.5)
-    plt.imshow(im)
-    plt.show()
+def plot_lines(im, lines, axis=0):
+    if not st.session_state['debug']:
+        return
+    fig, _ = plt.subplots()
+    if axis==0:
+        W = im.shape[1]
+        for i in range(len(lines)):
+            x = [0, W-1]
+            y = [lines[i], lines[i]]
+            plt.plot(x, y, color='blue', linewidth=0.5)
+    elif axis==1:
+        H = im.shape[0]
+        for i in range(len(lines)):
+            x = [lines[i], lines[i]]
+            y = [0, H-1]
+            plt.plot(x, y, color='green', linewidth=0.5)
+    else:
+        st.error('Invalid axis')
+    plt.imshow(im, cmap='gray')
+    plt.axis('off')
+    st.pyplot(fig)
 
-def plot_hlines(im, lines, color='blue'):
-    W = im.shape[1]
-    for i in range(len(lines)):
-        x = [0, W-1]
-        y = [lines[i], lines[i]]
-        plt.plot(x, y, color=color, linewidth=0.5)
-    plt.imshow(im)
-    plt.show()
 
 def find_staff_lines(im_bin, window = 50, thresh=0.3):
     H = im_bin.shape[0]
@@ -28,19 +34,19 @@ def find_staff_lines(im_bin, window = 50, thresh=0.3):
     # get the x coordinate at the start of the staves
     # this can actually be the end of the stave if the first stave is offset...
     start_x = np.argmin(whiteness) 
-    # plot_vlines(im_bin, [start_x])
+    plot_lines(im_bin, [start_x], axis=1)
 
     # get the y coordinates at the top and bottom of each system 
     dif = im_bin[1:H, start_x] - im_bin[:H-1, start_x]
     dif_lines = (dif != 0).nonzero()[0] 
-    # plot_hlines(im_bin, dif_lines)
+    plot_lines(im_bin, dif_lines, axis=0)
 
     border_lines = []
     for dif_line in dif_lines:
         closest = np.argmin((staff_lines - dif_line)**2)
         if (staff_lines[closest] - dif_line)**2 < window**2:
             border_lines.append(staff_lines[closest])
-    # plot_hlines(im_bin, border_lines, color='red')
+    plot_lines(im_bin, border_lines, axis=0)
     return np.unique(border_lines)
 
 def find_seps(im_bin, border_lines):
@@ -62,9 +68,9 @@ def get_staves(im):
     im_bin = cv2.threshold(im_bin*1.0/255, thresh, 1.0, cv2.THRESH_BINARY)[1]
 
     border_lines = find_staff_lines(im_bin)
-    # plot_hlines(im_bin, border_lines)
+    plot_lines(im_bin, border_lines, axis=0)
     seps = find_seps(im_bin, border_lines)
-    # plot_hlines(im_bin, seps)
+    plot_lines(im_bin, seps, axis=0)
 
     staves = np.split(im, seps, axis=0)
     return staves
