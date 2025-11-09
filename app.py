@@ -1,8 +1,9 @@
-import cv2
 import pathlib
 import shutil
 import streamlit as st
+import numpy as np
 from pdf2image import convert_from_bytes
+from PIL import Image
 from segment import get_staves
 
 ARCHIVE_NAME = 'staves'
@@ -12,7 +13,7 @@ IMS_FOLDER = 'ims/'
 out_path = pathlib.Path(OUTPUT_FOLDER)
 ims_path = out_path / IMS_FOLDER
 if out_path.exists() and out_path.is_dir():
-    shutil.rmtree(out_path) # clean up previous outputs
+    shutil.rmtree(out_path)  # clean up previous outputs
 ims_path.mkdir(parents=True)
 
 st.title('ScoreSegment')
@@ -33,21 +34,24 @@ if uploaded_file is not None:
     for page in pages:
         new_staves = get_staves(page)
         staves.extend(new_staves)
-    
-    for i, staff in enumerate(staves):       
-        fn = 'staff{}.png'.format(i+1)
+
+    for i, staff in enumerate(staves):
+        fn = 'staff{}.png'.format(i + 1)
         file_path = ims_path / fn
-        cv2.imwrite(str(file_path), staff)
+        # Convert numpy array to PIL Image and save
+        if isinstance(staff, np.ndarray):
+            staff_img = Image.fromarray(staff.astype('uint8'))
+        else:
+            staff_img = staff
+        staff_img.save(str(file_path))
 
     archive_path = out_path / ARCHIVE_NAME
     shutil.make_archive(archive_path, ARCHIVE_FMT, root_dir=ims_path)
 
-    archive_file_name =  (ARCHIVE_NAME + '.' + ARCHIVE_FMT)
+    archive_file_name = (ARCHIVE_NAME + '.' + ARCHIVE_FMT)
     archive_path = out_path / archive_file_name
 
     with open(str(archive_path), 'rb') as data:
-        st.download_button(
-            label='Download images here',
-            data=data,
-            file_name=archive_file_name
-        )
+        st.download_button(label='Download images here',
+                           data=data,
+                           file_name=archive_file_name)
